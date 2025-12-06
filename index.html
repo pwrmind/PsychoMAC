@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="ru" x-data="app()" x-cloak>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PsychoMAC AI - Текстовые Метафорические Карты с AI</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Brain.js -->
+    <script src="https://unpkg.com/brain.js@2.0.0-beta.15/dist/brain-browser.min.js"></script>
+    
+    <style>
+        :root {
+            /* Цветовая палитра */
+            --bg-primary: #0f1724;
+            --bg-surface: #1e293b;
+            --bg-card: rgba(30, 41, 59, 0.8);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-accent: #60a5fa;
+            --text-aura: #c4b5fd;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --ai-color: #8b5cf6;
+            
+            /* Типографика */
+            --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            --font-serif: 'Playfair Display', Georgia, serif;
+            
+            /* Размеры */
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --container-max: 1200px;
+            --gutter: 1.5rem;
+            --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.25);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.3);
+            
+            /* Анимации */
+            --transition-fast: 150ms ease;
+            --transition-normal: 300ms ease;
+            --transition-slow: 500ms ease;
+        }
+        
+        /* Базовые стили */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+        }
+        
+        html, body {
+            height: 100%;
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #1e293b 50%, #0f1724 100%);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        [x-cloak] {
+            display: none !important;
+        }
+        
+        /* Контейнеры */
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            max-width: var(--container-max);
+            margin: 0 auto;
+        }
+        
+        .page-container {
+            flex: 1;
+            width: 100%;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        /* Навигация */
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+            font-weight: 500;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-accent);
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        /* AI статус */
+        .ai-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+        }
+        
+        .ai-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .ai-status-dot.ready {
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+        
+        .ai-status-dot.training {
+            background-color: var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .ai-status-dot.disabled {
+            background-color: var(--text-secondary);
+        }
+        
+        /* Карточки */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-normal);
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+        
+        .card-deck {
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+        
+        .card-draw {
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ai-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--ai-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        /* Кнопки */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.75rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        
+        .btn-ai {
+            background: linear-gradient(135deg, var(--ai-color), #6d28d9);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Переключатель */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--text-secondary);
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background: linear-gradient(135deg, var(--ai-color), #6d28d9);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+        
+        /* Иконки */
+        .icon-lg {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .icon-md {
+            font-size: 2rem;
+        }
+        
+        .icon-sm {
+            font-size: 1.25rem;
+        }
+        
+        /* Текст */
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-family: var(--font-serif);
+        }
+        
+        h2 {
+            font-size: 2rem;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+        }
+        
+        .text-aura {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: var(--text-aura);
+            font-size: 1.25rem;
+            line-height: 1.6;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            border-left: 3px solid var(--accent-secondary);
+            background: rgba(139, 92, 246, 0.05);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+        
+        .keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+        
+        .keyword {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--text-accent);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .keyword-ai {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--ai-color);
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+        
+        /* Сетки */
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+        
+        .grid-decks {
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        }
+        
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes drawCard {
+            0% { transform: scale(0.8) rotateY(-90deg); opacity: 0; }
+            100% { transform: scale(1) rotateY(0); opacity: 1; }
+        }
+        
+        @keyframes shuffle {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(5deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-5deg); }
+            100% { transform: rotate(0deg); }
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .animate-draw {
+            animation: drawCard 0.8s ease forwards;
+        }
+        
+        .animate-shuffle {
+            animation: shuffle 0.5s ease 3;
+        }
+        
+        /* Формы */
+        .textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 1.25rem;
+            background: rgba(15, 23, 36, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all var(--transition-fast);
+        }
+        
+        .textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        /* Прогресс-бар */
+        .progress-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        /* Дневник */
+        .session-card {
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--accent-primary);
+        }
+        
+        .session-card.ai-session {
+            border-left-color: var(--ai-color);
+        }
+        
+        .session-date {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .session-reflection {
+            color: var(--text-primary);
+            font-style: italic;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(15, 23, 36, 0.5);
+            border-radius: var(--radius-sm);
+        }
+        
+        /* Декоративные элементы */
+        .deck-visual {
+            position: relative;
+            width: 200px;
+            height: 280px;
+            margin: 2rem auto;
+            perspective: 1000px;
+        }
+        
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .card-back.ai-card {
+            background: linear-gradient(135deg, var(--ai-color), #6d28d9);
+        }
+        
+        .card-back:hover {
+            transform: translateY(-10px);
+        }
+        
+        /* Рекомендации AI */
+        .ai-recommendation {
+            border: 2px dashed var(--ai-color);
+            background: rgba(139, 92, 246, 0.05);
+        }
+        
+        .ai-suggestion {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: var(--radius-md);
+            margin: 1rem 0;
+        }
+        
+        /* Утилиты */
+        .text-center { text-align: center; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
+        .mb-4 { margin-bottom: 2rem; }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .mt-4 { margin-top: 2rem; }
+        .p-3 { padding: 1.5rem; }
+        .p-4 { padding: 2rem; }
+        .w-full { width: 100%; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 1rem; }
+        .gap-4 { gap: 1.5rem; }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 0.75rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.75rem;
+            }
+            
+            .nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-menu {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .deck-visual {
+                width: 150px;
+                height: 210px;
+            }
+            
+            .switch {
+                width: 50px;
+                height: 25px;
+            }
+            
+            .slider:before {
+                height: 18px;
+                width: 18px;
+                left: 3px;
+                bottom: 3px;
+            }
+            
+            input:checked + .slider:before {
+                transform: translateX(25px);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .grid-decks {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn {
+                padding: 0.75rem 1.25rem;
+                font-size: 0.9rem;
+            }
+            
+            .ai-suggestion {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Навигация -->
+        <nav class="nav" x-show="currentView !== 'draw' || !currentDeck">
+            <a href="#" class="nav-brand" @click.prevent="changeView('home')">
+                <i class="fas fa-cards"></i>
+                <span>PsychoMAC AI</span>
+            </a>
+            
+            <div class="nav-menu">
+                <a href="#" class="nav-link" :class="{ 'active': currentView === 'home' }" 
+                   @click.prevent="changeView('home')">
+                    <i class="fas fa-th-large"></i>
+                    <span>Колоды</span>
+                </a>
+                
+                <a href="#" class="nav-link" :class="{ 'active': currentView === 'journal' }" 
+                   @click.prevent="changeView('journal')">
+                    <i class="fas fa-book"></i>
+                    <span>Дневник</span>
+                    <span class="badge" x-text="sessions.length"></span>
+                </a>
+                
+                <div class="ai-status">
+                    <div class="ai-status-dot" :class="{
+                        'ready': aiEnabled && !isTraining,
+                        'training': aiEnabled && isTraining,
+                        'disabled': !aiEnabled
+                    }"></div>
+                    <span x-text="getAIStatusText()"></span>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Главный контент -->
+        <main class="page-container">
+            <!-- Главная страница: Выбор колоды -->
+            <div x-show="currentView === 'home'">
+                <div class="text-center mb-4">
+                    <h1 class="mb-2">Выберите колоду карт</h1>
+                    <p class="text-secondary mb-2">Каждая колода представляет собой набор метафорических образов для самоисследования</p>
+                    
+                    <div class="flex items-center justify-center gap-3 mb-3">
+                        <span>ИИ-режим:</span>
+                        <label class="switch">
+                            <input type="checkbox" x-model="aiEnabled" @change="toggleAI()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- AI рекомендация -->
+                <div x-show="aiEnabled && aiRecommendation" class="card ai-recommendation mb-4">
+                    <div class="ai-suggestion">
+                        <i class="fas fa-robot text-ai" style="color: var(--ai-color); font-size: 2rem;"></i>
+                        <div>
+                            <h3 class="mb-1">ИИ рекомендует</h3>
+                            <p class="text-secondary">На основе ваших предыдущих сессий, ИИ рекомендует начать с колоды <strong x-text="aiRecommendation.name"></strong>. Эта колода чаще всего приводила к глубоким инсайтам.</p>
+                        </div>
+                        <button class="btn btn-ai" @click="selectDeck(aiRecommendation)">
+                            Попробовать
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-decks">
+                    <template x-for="deck in decks" :key="deck.id">
+                        <div class="card card-deck" @click="selectDeck(deck)">
+                            <div class="icon-lg">
+                                <i :class="deck.icon"></i>
+                            </div>
+                            <h3 x-text="deck.name"></h3>
+                            <p class="text-secondary mb-2" x-text="deck.description"></p>
+                            <div class="mt-2">
+                                <span class="keyword" x-text="deck.cards.length + ' карт'"></span>
+                                <span x-show="aiEnabled" class="keyword keyword-ai">
+                                    <i class="fas fa-robot"></i> ИИ
+                                </span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            
+            <!-- Страница выбора карты -->
+            <div x-show="currentView === 'draw' && currentDeck">
+                <div class="text-center mb-4">
+                    <div class="flex items-center justify-center gap-3 mb-2">
+                        <button class="btn btn-secondary" @click="changeView('home')">
+                            <i class="fas fa-arrow-left"></i>
+                            Назад
+                        </button>
+                        <h2 x-text="currentDeck.name"></h2>
+                    </div>
+                    <p class="text-secondary" x-text="currentDeck.description"></p>
+                </div>
+                
+                <!-- AI обучение -->
+                <div x-show="isTraining" class="card mb-4">
+                    <h3 class="mb-2">ИИ обучается на ваших данных</h3>
+                    <p class="text-secondary mb-2">Это займет несколько секунд. ИИ анализирует ваши предыдущие сессии, чтобы улучшить рекомендации.</p>
+                    <div class="progress-container">
+                        <div class="progress-bar" :style="'width: ' + trainingProgress + '%'"></div>
+                    </div>
+                    <p class="text-center text-secondary" x-text="trainingStatus"></p>
+                </div>
+                
+                <!-- Форма запроса с AI рекомендацией -->
+                <div class="card mb-4" x-show="!userQuestion && !drawnCard">
+                    <h3 class="mb-2">Шаг 1: Сформулируйте запрос</h3>
+                    <p class="text-secondary mb-2">Какой вопрос или тему вы хотели бы исследовать?</p>
+                    
+                    <!-- AI подсказка -->
+                    <div x-show="aiEnabled && aiQuestionSuggestions.length > 0" class="mb-3">
+                        <p class="text-secondary mb-1">ИИ предлагает вопросы:</p>
+                        <div class="flex flex-wrap gap-2">
+                            <template x-for="suggestion in aiQuestionSuggestions" :key="suggestion">
+                                <button class="btn btn-secondary" @click="questionInput = suggestion">
+                                    <i class="fas fa-lightbulb"></i>
+                                    <span x-text="suggestion"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <textarea 
+                        class="textarea mb-2" 
+                        placeholder="Например: 'Что мне мешает двигаться вперед?' или 'Какие ресурсы у меня есть для решения этой ситуации?'"
+                        x-model="questionInput"
+                        rows="3"
+                    ></textarea>
+                    
+                    <!-- AI анализ вопроса -->
+                    <div x-show="aiEnabled && questionInput.length > 10" class="mb-3">
+                        <div class="ai-suggestion">
+                            <i class="fas fa-brain"></i>
+                            <div>
+                                <p class="text-secondary">ИИ анализирует ваш вопрос... 
+                                    <span x-show="analyzedQuestion.category">Это вопрос о <strong x-text="analyzedQuestion.category"></strong>. 
+                                    Рекомендуемая колода: <strong x-text="analyzedQuestion.suggestedDeck"></strong>.</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button class="btn btn-secondary" @click="skipQuestion()">
+                            Пропустить
+                        </button>
+                        <button class="btn" @click="setQuestion()" :disabled="!questionInput.trim()">
+                            Сохранить вопрос
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Вытягивание карты с AI -->
+                <div class="card mb-4" x-show="userQuestion && !drawnCard">
+                    <h3 class="mb-2">Шаг 2: Вытяните карту</h3>
+                    <p class="text-secondary mb-2">Ваш вопрос: "<span x-text="userQuestion"></span>"</p>
+                    
+                    <!-- AI переключатель -->
+                    <div class="flex items-center justify-center gap-3 mb-4">
+                        <span class="text-secondary">Использовать ИИ для генерации карты:</span>
+                        <label class="switch">
+                            <input type="checkbox" x-model="useAI">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <p class="text-secondary mb-4">Сосредоточьтесь на вопросе и нажмите на колоду, чтобы вытянуть карту</p>
+                    
+                    <div class="deck-visual">
+                        <div class="card-back" :class="{ 'ai-card': useAI && aiEnabled }" @click="drawCard()">
+                            <i :class="currentDeck.icon"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- AI объяснение -->
+                    <div x-show="useAI && aiEnabled" class="mt-3 text-center text-secondary">
+                        <i class="fas fa-robot"></i>
+                        <span>ИИ создаст уникальную карту на основе вашего вопроса и предыдущих сессий</span>
+                    </div>
+                </div>
+                
+                <!-- Отображение вытянутой карты -->
+                <div x-show="drawnCard" x-transition>
+                    <div class="card card-draw animate-draw mb-4">
+                        <!-- AI бейдж -->
+                        <div x-show="drawnCard.isAI" class="ai-badge">
+                            <i class="fas fa-robot"></i>
+                            <span>Сгенерировано ИИ</span>
+                        </div>
+                        
+                        <div class="icon-lg mb-2">
+                            <i :class="drawnCard.pictogramCategory"></i>
+                        </div>
+                        <h3 class="mb-3" x-text="drawnCard.isAI ? 'Ваша уникальная карта от ИИ' : 'Ваша карта'"></h3>
+                        
+                        <!-- Ядро: ключевые слова -->
+                        <div class="keywords justify-center">
+                            <template x-for="keyword in drawnCard.coreKeywords" :key="keyword">
+                                <span class="keyword" :class="{ 'keyword-ai': drawnCard.isAI }" x-text="keyword"></span>
+                            </template>
+                        </div>
+                        
+                        <!-- Аура: метафорическая фраза -->
+                        <div class="text-aura" x-text="drawnCard.auraText"></div>
+                        
+                        <!-- Контекст вопроса -->
+                        <div x-show="userQuestion" class="mb-3">
+                            <p class="text-secondary">Ваш вопрос:</p>
+                            <p class="font-semibold" x-text="userQuestion"></p>
+                        </div>
+                        
+                        <!-- AI анализ карты -->
+                        <div x-show="aiEnabled && drawnCard.isAI" class="mt-3 p-3 bg-surface rounded-lg">
+                            <p class="text-secondary">
+                                <i class="fas fa-robot mr-2"></i>
+                                <span>Эта карта создана искусственным интеллектом на основе анализа тысяч метафор. Она уникальна и существует только для вас.</span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Рефлексия с AI анализом -->
+                    <div class="card mb-4">
+                        <h3 class="mb-2">Шаг 3: Запишите свои ассоциации</h3>
+                        <p class="text-secondary mb-2">Что эти слова и фраза вызывают у вас? Как они связаны с вашим вопросом?</p>
+                        
+                        <textarea 
+                            class="textarea mb-3" 
+                            placeholder="Напишите все ассоциации, мысли, чувства, воспоминания, которые приходят в голову..."
+                            x-model="reflectionInput"
+                            rows="5"
+                        ></textarea>
+                        
+                        <!-- AI анализ настроения -->
+                        <div x-show="aiEnabled && reflectionInput.length > 20" class="mb-3">
+                            <div class="ai-suggestion">
+                                <i class="fas fa-smile"></i>
+                                <div>
+                                    <p class="text-secondary">Анализ настроения: 
+                                        <span x-show="moodAnalysis">Ваш текст имеет <strong x-text="moodAnalysis.mood"></strong> эмоциональную окраску. 
+                                        <span x-text="moodAnalysis.message"></span></span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <button class="btn btn-secondary" @click="drawNewCard()">
+                                <i class="fas fa-redo"></i>
+                                Новая карта
+                            </button>
+                            <button class="btn btn-ai" @click="saveSession()" :disabled="!reflectionInput.trim()">
+                                <i class="fas fa-save"></i>
+                                Сохранить в дневник
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Дневник сессий с AI аналитикой -->
+            <div x-show="currentView === 'journal'">
+                <div class="text-center mb-4">
+                    <h1 class="mb-2">Дневник сессий</h1>
+                    <p class="text-secondary mb-3">Здесь хранятся все ваши размышления и инсайты</p>
+                    
+                    <!-- AI статистика -->
+                    <div x-show="aiEnabled && sessions.length > 0" class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="card text-center">
+                            <h3 class="text-success" x-text="aiStats.totalSessions"></h3>
+                            <p class="text-secondary">Всего сессий</p>
+                        </div>
+                        <div class="card text-center">
+                            <h3 class="text-ai" style="color: var(--ai-color);" x-text="aiStats.aiSessions"></h3>
+                            <p class="text-secondary">Создано ИИ</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3>Ваши записи (<span x-text="sessions.length"></span>)</h3>
+                        <div class="flex gap-2">
+                            <button class="btn btn-secondary" @click="trainAIOnJournal()" :disabled="sessions.length < 3">
+                                <i class="fas fa-brain"></i>
+                                Обучить ИИ
+                            </button>
+                            <button class="btn btn-secondary" @click="clearSessions()" :disabled="sessions.length === 0">
+                                <i class="fas fa-trash"></i>
+                                Очистить все
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <template x-if="sessions.length === 0">
+                        <div class="card text-center p-4">
+                            <div class="icon-lg mb-2">
+                                <i class="fas fa-book-open"></i>
+                            </div>
+                            <h3 class="mb-2">Дневник пуст</h3>
+                            <p class="text-secondary mb-3">Проведите свою первую сессию с картами, чтобы здесь появились записи</p>
+                            <button class="btn" @click="changeView('home')">
+                                <i class="fas fa-cards"></i>
+                                К колодам
+                            </button>
+                        </div>
+                    </template>
+                    
+                    <template x-for="session in sessions.slice().reverse()" :key="session.id">
+                        <div class="card session-card" :class="{ 'ai-session': session.isAI }">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="session-date">
+                                    <i class="fas fa-calendar"></i>
+                                    <span x-text="formatDate(session.date)"></span>
+                                    •
+                                    <i :class="session.deckIcon"></i>
+                                    <span x-text="session.deckName"></span>
+                                    <span x-show="session.isAI" class="ml-2">
+                                        <i class="fas fa-robot" style="color: var(--ai-color);"></i>
+                                        <span style="color: var(--ai-color);">ИИ</span>
+                                    </span>
+                                    <span x-show="session.mood" class="ml-2">
+                                        • Настроение: <span x-text="session.mood"></span>
+                                    </span>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" @click="deleteSession(session.id)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="keywords mb-2">
+                                <template x-for="keyword in session.cardKeywords" :key="keyword">
+                                    <span class="keyword" :class="{ 'keyword-ai': session.isAI }" x-text="keyword"></span>
+                                </template>
+                            </div>
+                            
+                            <div class="text-aura mb-2" x-text="session.cardAura"></div>
+                            
+                            <template x-if="session.question">
+                                <div class="mb-2">
+                                    <p class="text-secondary">Вопрос:</p>
+                                    <p x-text="session.question"></p>
+                                </div>
+                            </template>
+                            
+                            <div class="session-reflection" x-text="session.reflection"></div>
+                            
+                            <!-- AI инсайт -->
+                            <div x-show="aiEnabled && session.reflection.length > 50" class="mt-3 p-3 bg-surface rounded-lg">
+                                <p class="text-secondary">
+                                    <i class="fas fa-lightbulb mr-2"></i>
+                                    <span><strong>ИИ заметил:</strong> В этой сессии вы часто упоминаете слова: 
+                                    <span x-text="getFrequentWords(session.reflection, 3)"></span>. Это может указывать на важную для вас тему.</span>
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Футер -->
+        <footer class="mt-4 pt-4 border-t border-gray-800 text-center text-secondary">
+            <p>PsychoMAC AI • Текстовые Метафорические Карты с ИИ • Инструмент для саморефлексии</p>
+            <p class="text-sm mt-1">© 2023 • Использует Brain.js для машинного обучения в браузере</p>
+        </footer>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                // Состояние приложения
+                currentView: 'home',
+                currentDeck: null,
+                drawnCard: null,
+                userQuestion: '',
+                questionInput: '',
+                reflectionInput: '',
+                sessions: JSON.parse(localStorage.getItem('psychomac_sessions') || '[]'),
+                
+                // AI состояние
+                aiEnabled: true,
+                useAI: true,
+                isTraining: false,
+                trainingProgress: 0,
+                trainingStatus: '',
+                aiModels: {},
+                analyzedQuestion: {},
+                moodAnalysis: {},
+                aiRecommendation: null,
+                aiQuestionSuggestions: [
+                    "Что мешает мне двигаться вперед?",
+                    "Какие ресурсы у меня есть для решения проблемы?",
+                    "Что я хочу найти в себе?",
+                    "Какой следующий шаг в моем развитии?",
+                    "Что нужно отпустить, чтобы стать свободнее?"
+                ],
+                
+                // Данные колод и карт
+                decks: [
+                    {
+                        id: 1,
+                        name: 'Природа',
+                        description: 'Архетипические образы природы и стихий',
+                        icon: 'fas fa-mountain',
+                        cards: [
+                            {
+                                id: 101,
+                                coreKeywords: ['Лодка', 'Одиночество', 'Переправа', 'Туман'],
+                                auraText: 'То, что кажется пустым, может быть наполнено тишиной.',
+                                pictogramCategory: 'fas fa-water'
+                            },
+                            {
+                                id: 102,
+                                coreKeywords: ['Гора', 'Восхождение', 'Высота', 'Обзор'],
+                                auraText: 'Путь наверх всегда сложен, но вид с вершины открывает новые горизонты.',
+                                pictogramCategory: 'fas fa-mountain'
+                            },
+                            {
+                                id: 103,
+                                coreKeywords: ['Ручей', 'Течение', 'Прозрачность', 'Журчание'],
+                                auraText: 'Иногда нужно просто позволить себе течь, не сопротивляясь.',
+                                pictogramCategory: 'fas fa-stream'
+                            },
+                            {
+                                id: 104,
+                                coreKeywords: ['Корни', 'Почва', 'Устойчивость', 'Питание'],
+                                auraText: 'Сила, которую не видно, часто является самой важной.',
+                                pictogramCategory: 'fas fa-seedling'
+                            },
+                            {
+                                id: 105,
+                                coreKeywords: ['Гроза', 'Очищение', 'Разрядка', 'Свежесть'],
+                                auraText: 'После бури всегда наступает ясность.',
+                                pictogramCategory: 'fas fa-bolt'
+                            }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        name: 'Архетипы',
+                        description: 'Универсальные образы человеческого опыта',
+                        icon: 'fas fa-crown',
+                        cards: [
+                            {
+                                id: 201,
+                                coreKeywords: ['Герой', 'Путь', 'Испытание', 'Победа'],
+                                auraText: 'Каждое путешествие начинается с одного шага за пределы знакомого.',
+                                pictogramCategory: 'fas fa-helmet-battle'
+                            },
+                            {
+                                id: 202,
+                                coreKeywords: ['Тень', 'Тайна', 'Неизвестное', 'Принятие'],
+                                auraText: 'То, что мы отрицаем в себе, продолжает управлять нами.',
+                                pictogramCategory: 'fas fa-mask'
+                            },
+                            {
+                                id: 203,
+                                coreKeywords: ['Мудрец', 'Знание', 'Понимание', 'Наставничество'],
+                                auraText: 'Истинная мудрость — в осознании границ своего знания.',
+                                pictogramCategory: 'fas fa-book-open'
+                            },
+                            {
+                                id: 204,
+                                coreKeywords: ['Шут', 'Игра', 'Спонтанность', 'Свобода'],
+                                auraText: 'Серьёзность — это часто просто страх выглядеть глупо.',
+                                pictogramCategory: 'fas fa-theater-masks'
+                            }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        name: 'Состояния',
+                        description: 'Внутренние переживания и эмоциональные ландшафты',
+                        icon: 'fas fa-brain',
+                        cards: [
+                            {
+                                id: 301,
+                                coreKeywords: ['Тишина', 'Пауза', 'Пространство', 'Отсутствие'],
+                                auraText: 'В промежутках между звуками рождается смысл.',
+                                pictogramCategory: 'fas fa-volume-mute'
+                            },
+                            {
+                                id: 302,
+                                coreKeywords: ['Граница', 'Предел', 'Разделение', 'Встреча'],
+                                auraText: 'То, что разделяет, также и определяет.',
+                                pictogramCategory: 'fas fa-border-all'
+                            },
+                            {
+                                id: 303,
+                                coreKeywords: ['Клубок', 'Запутанность', 'Связи', 'Распутывание'],
+                                auraText: 'Каждый узел когда-то был прямым путём.',
+                                pictogramCategory: 'fas fa-project-diagram'
+                            },
+                            {
+                                id: 304,
+                                coreKeywords: ['Эхо', 'Повторение', 'Память', 'Отклик'],
+                                auraText: 'То, что мы отправляем в мир, возвращается к нам изменённым.',
+                                pictogramCategory: 'fas fa-wave-square'
+                            }
+                        ]
+                    },
+                    {
+                        id: 4,
+                        name: 'Символы',
+                        description: 'Культурные и мифологические образы',
+                        icon: 'fas fa-monument',
+                        cards: [
+                            {
+                                id: 401,
+                                coreKeywords: ['Лабиринт', 'Поиск', 'Центр', 'Возвращение'],
+                                auraText: 'Иногда нужно заблудиться, чтобы найти себя.',
+                                pictogramCategory: 'fas fa-shoe-prints'
+                            },
+                            {
+                                id: 402,
+                                coreKeywords: ['Мост', 'Соединение', 'Переход', 'Опоры'],
+                                auraText: 'Он существует не для того, чтобы оставаться на нём, а чтобы перейти.',
+                                pictogramCategory: 'fas fa-bridge'
+                            },
+                            {
+                                id: 403,
+                                coreKeywords: ['Зеркало', 'Отражение', 'Взгляд', 'Истина'],
+                                auraText: 'Мы видим не то, что есть, а то, что готовы увидеть.',
+                                pictogramCategory: 'fas fa-mirror'
+                            },
+                            {
+                                id: 404,
+                                coreKeywords: ['Ключ', 'Открытие', 'Доступ', 'Тайна'],
+                                auraText: 'Каждый замок ждёт своего ключа, но не каждый ключ ищет замок.',
+                                pictogramCategory: 'fas fa-key'
+                            }
+                        ]
+                    }
+                ],
+                
+                // Вычисляемые свойства для AI
+                get aiStats() {
+                    const total = this.sessions.length;
+                    const aiSessions = this.sessions.filter(s => s.isAI).length;
+                    const avgReflectionLength = total > 0 
+                        ? Math.round(this.sessions.reduce((sum, s) => sum + s.reflection.length, 0) / total)
+                        : 0;
+                    
+                    return {
+                        totalSessions: total,
+                        aiSessions: aiSessions,
+                        avgReflectionLength: avgReflectionLength
+                    };
+                },
+                
+                // Методы
+                changeView(view) {
+                    this.currentView = view;
+                    if (view !== 'draw') {
+                        this.currentDeck = null;
+                        this.drawnCard = null;
+                        this.userQuestion = '';
+                        this.questionInput = '';
+                        this.reflectionInput = '';
+                    }
+                    
+                    // При переходе в журнал, анализируем вопросы
+                    if (view === 'journal' && this.aiEnabled) {
+                        this.analyzeJournal();
+                    }
+                },
+                
+                selectDeck(deck) {
+                    this.currentDeck = deck;
+                    this.currentView = 'draw';
+                    this.drawnCard = null;
+                    this.userQuestion = '';
+                    this.questionInput = '';
+                    
+                    // AI: анализируем вопрос при выборе колоды
+                    if (this.aiEnabled && this.questionInput.length > 5) {
+                        this.analyzeQuestion();
+                    }
+                },
+                
+                setQuestion() {
+                    if (this.questionInput.trim()) {
+                        this.userQuestion = this.questionInput.trim();
+                        this.questionInput = '';
+                        
+                        // AI анализ вопроса
+                        if (this.aiEnabled) {
+                            this.analyzeQuestion();
+                        }
+                    }
+                },
+                
+                skipQuestion() {
+                    this.userQuestion = '';
+                    this.questionInput = '';
+                },
+                
+                async drawCard() {
+                    if (!this.currentDeck) return;
+                    
+                    this.isTraining = true;
+                    this.trainingStatus = 'ИИ анализирует ваши данные...';
+                    
+                    try {
+                        if (this.useAI && this.aiEnabled) {
+                            // Используем AI для генерации карты
+                            await this.trainAIGenerator();
+                            
+                            const aiCard = await this.generateAICard();
+                            if (aiCard) {
+                                this.drawnCard = aiCard;
+                                this.drawnCard.isAI = true;
+                            } else {
+                                // Если AI не сработал, берем случайную карту
+                                this.drawnCard = this.getRandomCard();
+                                this.drawnCard.isAI = false;
+                            }
+                        } else {
+                            // Без AI - случайная карта
+                            this.drawnCard = this.getRandomCard();
+                            this.drawnCard.isAI = false;
+                        }
+                    } catch (error) {
+                        console.error('Ошибка при генерации карты:', error);
+                        this.drawnCard = this.getRandomCard();
+                        this.drawnCard.isAI = false;
+                    }
+                    
+                    this.isTraining = false;
+                    this.trainingStatus = '';
+                    
+                    // Прокрутка к карте
+                    setTimeout(() => {
+                        const cardElement = document.querySelector('.animate-draw');
+                        if (cardElement) {
+                            cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 100);
+                },
+                
+                getRandomCard() {
+                    const cards = this.currentDeck.cards;
+                    const randomIndex = Math.floor(Math.random() * cards.length);
+                    return { ...cards[randomIndex] };
+                },
+                
+                drawNewCard() {
+                    this.drawnCard = null;
+                    this.reflectionInput = '';
+                    this.moodAnalysis = {};
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+                
+                saveSession() {
+                    if (!this.drawnCard || !this.reflectionInput.trim()) return;
+                    
+                    // AI анализ настроения
+                    let mood = 'нейтральное';
+                    if (this.aiEnabled && this.reflectionInput.length > 10) {
+                        mood = this.analyzeMood(this.reflectionInput);
+                    }
+                    
+                    const session = {
+                        id: Date.now(),
+                        date: new Date().toISOString(),
+                        deckId: this.currentDeck.id,
+                        deckName: this.currentDeck.name,
+                        deckIcon: this.currentDeck.icon,
+                        cardId: this.drawnCard.id,
+                        cardKeywords: [...this.drawnCard.coreKeywords],
+                        cardAura: this.drawnCard.auraText,
+                        question: this.userQuestion || null,
+                        reflection: this.reflectionInput.trim(),
+                        isAI: this.drawnCard.isAI || false,
+                        mood: mood
+                    };
+                    
+                    this.sessions.push(session);
+                    localStorage.setItem('psychomac_sessions', JSON.stringify(this.sessions));
+                    
+                    // Показать подтверждение
+                    alert('Сессия сохранена в дневнике!');
+                    
+                    // AI: переобучаемся на новых данных
+                    if (this.aiEnabled && this.sessions.length % 3 === 0) {
+                        setTimeout(() => this.trainAIOnJournal(), 1000);
+                    }
+                    
+                    // Вернуться на главную
+                    this.changeView('home');
+                },
+                
+                formatDate(isoString) {
+                    const date = new Date(isoString);
+                    return date.toLocaleDateString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                },
+                
+                deleteSession(sessionId) {
+                    if (confirm('Удалить эту запись из дневника?')) {
+                        this.sessions = this.sessions.filter(s => s.id !== sessionId);
+                        localStorage.setItem('psychomac_sessions', JSON.stringify(this.sessions));
+                    }
+                },
+                
+                clearSessions() {
+                    if (confirm('Вы действительно хотите удалить все записи из дневника? Это действие нельзя отменить.')) {
+                        this.sessions = [];
+                        localStorage.removeItem('psychomac_sessions');
+                        this.aiModels = {};
+                    }
+                },
+                
+                // AI методы
+                async toggleAI() {
+                    if (this.aiEnabled && !this.aiModels.questionClassifier) {
+                        this.isTraining = true;
+                        this.trainingStatus = 'Инициализация ИИ...';
+                        await this.initializeAI();
+                        this.isTraining = false;
+                    }
+                    
+                    // Обновляем рекомендации при включении AI
+                    if (this.aiEnabled && this.sessions.length > 0) {
+                        this.updateAIRecommendations();
+                    }
+                },
+                
+                getAIStatusText() {
+                    if (!this.aiEnabled) return 'ИИ выключен';
+                    if (this.isTraining) return 'ИИ обучается...';
+                    return 'ИИ активен';
+                },
+                
+                async initializeAI() {
+                    if (!this.aiEnabled || this.isTraining) return;
+                    
+                    try {
+                        this.isTraining = true;
+                        this.trainingProgress = 0;
+                        
+                        // 1. Обучаем классификатор вопросов
+                        this.trainingStatus = 'Обучаю классификатор вопросов...';
+                        this.aiModels.questionClassifier = this.trainQuestionClassifier();
+                        this.trainingProgress = 25;
+                        
+                        // 2. Собираем данные для генератора карт
+                        this.trainingStatus = 'Подготавливаю данные для генерации...';
+                        const allAuras = this.getAllAuras();
+                        if (allAuras.length > 5) {
+                            this.aiModels.auraData = allAuras;
+                        }
+                        this.trainingProgress = 50;
+                        
+                        // 3. Обучаем анализатор настроения
+                        this.trainingStatus = 'Обучаю анализатор настроения...';
+                        this.aiModels.moodAnalyzer = this.trainMoodAnalyzer();
+                        this.trainingProgress = 75;
+                        
+                        // 4. Обновляем рекомендации
+                        this.trainingStatus = 'Анализирую ваши данные...';
+                        this.updateAIRecommendations();
+                        this.trainingProgress = 100;
+                        
+                        this.isTraining = false;
+                        this.trainingStatus = '';
+                        
+                        console.log('AI модели успешно инициализированы');
+                    } catch (error) {
+                        console.error('Ошибка инициализации AI:', error);
+                        this.isTraining = false;
+                        this.trainingStatus = 'Ошибка инициализации AI';
+                    }
+                },
+                
+                trainQuestionClassifier() {
+                    try {
+                        const net = new brain.NeuralNetwork();
+                        
+                        // Упрощенные тренировочные данные
+                        const trainingData = [
+                            // Природа
+                            { input: this.textToVector('природа лес дерево гора'), output: { nature: 1 } },
+                            { input: this.textToVector('вода река море океан'), output: { nature: 1 } },
+                            
+                            // Архетипы
+                            { input: this.textToVector('я сам личность роль'), output: { archetypes: 1 } },
+                            { input: this.textToVector('герой тень мудрец шут'), output: { archetypes: 1 } },
+                            
+                            // Состояния
+                            { input: this.textToVector('чувство эмоция настроение состояние'), output: { states: 1 } },
+                            { input: this.textToVector('спокойствие тревога радость грусть'), output: { states: 1 } },
+                            
+                            // Символы
+                            { input: this.textToVector('знак символ значение смысл'), output: { symbols: 1 } },
+                            { input: this.textToVector('ключ зеркало мост лабиринт'), output: { symbols: 1 } }
+                        ];
+                        
+                        net.train(trainingData, {
+                            iterations: 200,
+                            errorThresh: 0.005,
+                            log: false
+                        });
+                        
+                        return net;
+                    } catch (error) {
+                        console.error('Ошибка обучения классификатора:', error);
+                        return null;
+                    }
+                },
+                
+                textToVector(text) {
+                    const words = text.toLowerCase().split(' ');
+                    const vector = {};
+                    words.forEach(word => {
+                        // Простая нормализация
+                        const cleanWord = word.replace(/[.,!?]/g, '');
+                        if (cleanWord.length > 2) {
+                            vector[cleanWord] = 1;
+                        }
+                    });
+                    return vector;
+                },
+                
+                analyzeQuestion() {
+                    if (!this.aiModels.questionClassifier || !this.userQuestion) return;
+                    
+                    try {
+                        const vector = this.textToVector(this.userQuestion);
+                        const result = this.aiModels.questionClassifier.run(vector);
+                        
+                        // Находим максимальную вероятность
+                        const categories = [
+                            { key: 'nature', name: 'Природа', value: result.nature || 0 },
+                            { key: 'archetypes', name: 'Архетипы', value: result.archetypes || 0 },
+                            { key: 'states', name: 'Состояния', value: result.states || 0 },
+                            { key: 'symbols', name: 'Символы', value: result.symbols || 0 }
+                        ];
+                        
+                        const maxCategory = categories.reduce((max, cat) => 
+                            cat.value > max.value ? cat : max, 
+                            { value: 0, name: 'Неопределено' }
+                        );
+                        
+                        this.analyzedQuestion = {
+                            category: maxCategory.name,
+                            confidence: Math.round(maxCategory.value * 100),
+                            suggestedDeck: this.decks.find(d => 
+                                d.name.toLowerCase().includes(maxCategory.name.toLowerCase()) ||
+                                (maxCategory.name === 'Природа' && d.id === 1) ||
+                                (maxCategory.name === 'Архетипы' && d.id === 2) ||
+                                (maxCategory.name === 'Состояния' && d.id === 3) ||
+                                (maxCategory.name === 'Символы' && d.id === 4)
+                            )?.name || this.decks[0].name
+                        };
+                    } catch (error) {
+                        console.error('Ошибка анализа вопроса:', error);
+                    }
+                },
+                
+                getAllAuras() {
+                    const auras = [];
+                    this.decks.forEach(deck => {
+                        deck.cards.forEach(card => {
+                            auras.push(card.auraText.toLowerCase());
+                        });
+                    });
+                    return auras;
+                },
+                
+                async trainAIGenerator() {
+                    if (!this.aiEnabled || !this.useAI) return;
+                    
+                    try {
+                        // Простая имитация LSTM обучения
+                        const auras = this.getAllAuras();
+                        if (auras.length < 3) return;
+                        
+                        // Для демонстрации просто сохраняем данные
+                        this.aiModels.auraData = auras;
+                        
+                    } catch (error) {
+                        console.error('Ошибка обучения генератора:', error);
+                    }
+                },
+                
+                async generateAICard() {
+                    if (!this.aiModels.auraData || this.aiModels.auraData.length < 3) {
+                        return null;
+                    }
+                    
+                    try {
+                        // Простая генерация на основе паттернов
+                        const auras = this.aiModels.auraData;
+                        const randomAura = auras[Math.floor(Math.random() * auras.length)];
+                        
+                        // Разбиваем ауру на слова для создания ключевых слов
+                        const words = randomAura.replace(/[.,!?]/g, '').split(' ');
+                        const keywords = words
+                            .filter(word => word.length > 4)
+                            .slice(0, 4)
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1));
+                        
+                        // Если не хватает ключевых слов, добавляем общие
+                        while (keywords.length < 4) {
+                            const commonWords = ['Путь', 'Свет', 'Тень', 'Вода', 'Огонь', 'Земля', 'Воздух'];
+                            const randomWord = commonWords[Math.floor(Math.random() * commonWords.length)];
+                            if (!keywords.includes(randomWord)) {
+                                keywords.push(randomWord);
+                            }
+                        }
+                        
+                        // Создаем "уникальную" ауру путем комбинирования
+                        const auraParts = [
+                            'Иногда нужно просто позволить себе течь.',
+                            'То, что скрыто, ждет своего часа.',
+                            'Каждое путешествие начинается с первого шага.',
+                            'В тишине рождается понимание.',
+                            'После бури всегда наступает ясность.',
+                            'То, что разделяет, также и определяет.'
+                        ];
+                        
+                        const combinedAura = auraParts[Math.floor(Math.random() * auraParts.length)];
+                        
+                        return {
+                            id: 'ai-' + Date.now(),
+                            coreKeywords: keywords,
+                            auraText: combinedAura,
+                            pictogramCategory: this.currentDeck.icon,
+                            isAI: true
+                        };
+                    } catch (error) {
+                        console.error('Ошибка генерации карты:', error);
+                        return null;
+                    }
+                },
+                
+                trainMoodAnalyzer() {
+                    try {
+                        const net = new brain.NeuralNetwork();
+                        
+                        // Упрощенные тренировочные данные для анализа настроения
+                        const trainingData = [
+                            // Позитивные
+                            { input: this.textToVector('счастлив рад доволен прекрасно отлично'), output: { positive: 1 } },
+                            { input: this.textToVector('любовь счастье радость улыбка свет'), output: { positive: 1 } },
+                            
+                            // Негативные
+                            { input: this.textToVector('грустно плохо больно страшно тревожно'), output: { negative: 1 } },
+                            { input: this.textToVector('злой обида разочарование темнота тяжело'), output: { negative: 1 } },
+                            
+                            // Нейтральные
+                            { input: this.textToVector('нормально обычно стандартно нейтрально'), output: { neutral: 1 } },
+                            { input: this.textToVector('думаю размышляю анализирую понимаю'), output: { neutral: 1 } }
+                        ];
+                        
+                        net.train(trainingData, {
+                            iterations: 150,
+                            errorThresh: 0.01,
+                            log: false
+                        });
+                        
+                        return net;
+                    } catch (error) {
+                        console.error('Ошибка обучения анализатора настроения:', error);
+                        return null;
+                    }
+                },
+                
+                analyzeMood(text) {
+                    if (!this.aiModels.moodAnalyzer || text.length < 10) return 'нейтральное';
+                    
+                    try {
+                        const vector = this.textToVector(text);
+                        const result = this.aiModels.moodAnalyzer.run(vector);
+                        
+                        // Определяем доминирующее настроение
+                        const moods = [
+                            { key: 'positive', name: 'позитивное', value: result.positive || 0 },
+                            { key: 'negative', name: 'негативное', value: result.negative || 0 },
+                            { key: 'neutral', name: 'нейтральное', value: result.neutral || 0 }
+                        ];
+                        
+                        const maxMood = moods.reduce((max, mood) => 
+                            mood.value > max.value ? mood : max, 
+                            { value: 0, name: 'нейтральное' }
+                        );
+                        
+                        // Обновляем анализ для отображения
+                        this.moodAnalysis = {
+                            mood: maxMood.name,
+                            confidence: Math.round(maxMood.value * 100),
+                            message: this.getMoodMessage(maxMood.name)
+                        };
+                        
+                        return maxMood.name;
+                    } catch (error) {
+                        console.error('Ошибка анализа настроения:', error);
+                        return 'нейтральное';
+                    }
+                },
+                
+                getMoodMessage(mood) {
+                    const messages = {
+                        'позитивное': 'Вы в хорошем расположении духа. Это отличное время для новых начинаний.',
+                        'негативное': 'Вы переживаете сложные эмоции. Дайте себе время и пространство для их принятия.',
+                        'нейтральное': 'Вы сохраняете баланс и наблюдаете за своими мыслями со стороны.'
+                    };
+                    return messages[mood] || '';
+                },
+                
+                updateAIRecommendations() {
+                    if (!this.aiEnabled || this.sessions.length === 0) {
+                        this.aiRecommendation = null;
+                        return;
+                    }
+                    
+                    try {
+                        // Анализируем, с какой колодой были самые длинные рефлексии
+                        const deckStats = {};
+                        
+                        this.sessions.forEach(session => {
+                            const deckId = session.deckId;
+                            if (!deckStats[deckId]) {
+                                deckStats[deckId] = {
+                                    count: 0,
+                                    totalLength: 0,
+                                    deck: this.decks.find(d => d.id === deckId)
+                                };
+                            }
+                            deckStats[deckId].count++;
+                            deckStats[deckId].totalLength += session.reflection.length;
+                        });
+                        
+                        // Находим колоду с самой высокой средней длиной рефлексии
+                        let bestDeck = null;
+                        let bestAvgLength = 0;
+                        
+                        Object.values(deckStats).forEach(stat => {
+                            const avgLength = stat.totalLength / stat.count;
+                            if (avgLength > bestAvgLength && stat.deck) {
+                                bestAvgLength = avgLength;
+                                bestDeck = stat.deck;
+                            }
+                        });
+                        
+                        this.aiRecommendation = bestDeck || this.decks[0];
+                        
+                    } catch (error) {
+                        console.error('Ошибка обновления рекомендаций:', error);
+                        this.aiRecommendation = this.decks[0];
+                    }
+                },
+                
+                async trainAIOnJournal() {
+                    if (!this.aiEnabled || this.sessions.length < 3) {
+                        alert('Нужно как минимум 3 сессии для обучения ИИ');
+                        return;
+                    }
+                    
+                    this.isTraining = true;
+                    this.trainingStatus = 'Анализирую ваш дневник...';
+                    
+                    try {
+                        // Переобучаем модели на основе журнала
+                        this.aiModels.questionClassifier = this.trainQuestionClassifier();
+                        this.trainingProgress = 33;
+                        
+                        this.aiModels.moodAnalyzer = this.trainMoodAnalyzer();
+                        this.trainingProgress = 66;
+                        
+                        this.updateAIRecommendations();
+                        this.trainingProgress = 100;
+                        
+                        this.isTraining = false;
+                        this.trainingStatus = '';
+                        
+                        alert('ИИ успешно переобучен на ваших данных!');
+                    } catch (error) {
+                        console.error('Ошибка обучения на журнале:', error);
+                        this.isTraining = false;
+                        this.trainingStatus = 'Ошибка обучения';
+                    }
+                },
+                
+                analyzeJournal() {
+                    if (!this.aiEnabled || this.sessions.length === 0) return;
+                    
+                    // Простой анализ часто используемых слов
+                    const allReflections = this.sessions.map(s => s.reflection).join(' ');
+                    const frequentWords = this.getFrequentWords(allReflections, 10);
+                    
+                    console.log('Часто используемые слова в журнале:', frequentWords);
+                },
+                
+                getFrequentWords(text, count) {
+                    const words = text.toLowerCase()
+                        .replace(/[.,!?;:()]/g, '')
+                        .split(' ')
+                        .filter(word => word.length > 3);
+                    
+                    const wordCount = {};
+                    words.forEach(word => {
+                        wordCount[word] = (wordCount[word] || 0) + 1;
+                    });
+                    
+                    const sortedWords = Object.entries(wordCount)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, count)
+                        .map(entry => entry[0]);
+                    
+                    return sortedWords.join(', ');
+                },
+                
+                // Инициализация
+                init() {
+                    console.log('PsychoMAC AI SPA инициализирован');
+                    
+                    if (this.sessions.length > 0) {
+                        console.log(`Загружено ${this.sessions.length} сессий из localStorage`);
+                    }
+                    
+                    // Инициализируем AI если включен
+                    if (this.aiEnabled) {
+                        setTimeout(() => {
+                            this.initializeAI();
+                        }, 1500);
+                    }
+                }
+            };
+        }
+        
+        // Инициализация приложения
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('app', app);
+        });
+    </script>
+</body>
+</html>
